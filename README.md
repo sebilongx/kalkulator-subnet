@@ -2,79 +2,84 @@
 
 # 🌐 Subnet Mask Calculator
 
-### Kalkulator Subnetting & VLSM IP Address yang Powerful
+### Kalkulator Subnetting Modern dengan VLSM Support
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://subnet-calculator.vercel.app)
+Kalkulator subnetting IP address yang powerful dengan fitur VLSM, visualisasi interaktif, dan export hasil dalam berbagai format.
 
-**Kalkulator subnetting IP address modern dengan fitur VLSM, export CSV, dan visualisasi interaktif.**
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.4-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](./LICENSE)
+[![Build](https://img.shields.io/badge/Build-Passing-success?style=for-the-badge)]()
+[![Deployed](https://img.shields.io/badge/Deployed-Vercel-black?style=for-the-badge&logo=vercel)](https://subnet-calculator.vercel.app)
 
 [Live Demo](https://subnet-calculator.vercel.app) •
-[Report Bug](https://github.com/yourusername/subnet-calculator/issues) •
-[Request Feature](https://github.com/yourusername/subnet-calculator/issues)
+[Laporan Bug](https://github.com/username/subnet-calculator/issues) •
+[Request Fitur](https://github.com/username/subnet-calculator/issues) •
+[Kontribusi](#-kontribusi)
 
 </div>
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshot
 
-### Subnet Calculator
-![Subnet Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=Subnet+Calculator+Screenshot)
+<div align="center">
+
+### Subnet Calculator Interface
+![Subnet Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=Subnet+Calculator+Interface)
 *Interface kalkulator subnet dengan dark theme glassmorphism*
 
-### VLSM Calculator
-![VLSM Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=VLSM+Calculator+Screenshot)
-*Fitur VLSM dengan visualisasi alokasi interaktif*
+### VLSM Calculator dengan Visualisasi
+![VLSM Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=VLSM+Calculator+with+Visualization)
+*Fitur VLSM dengan visualisasi alokasi interaktif dan tooltip*
+
+</div>
 
 ---
 
-## ✨ Features
+## ✨ Fitur Unggulan
 
-### 🌐 Subnet Calculator
-- 🎯 **Dual Input Mode** - Input menggunakan CIDR prefix atau subnet mask
-- 📊 **Comprehensive Results** - Network address, broadcast, usable hosts, wildcard mask
-- 🔢 **Binary Representation** - Tampilan biner untuk pemahaman mendalam
-- 📋 **Quick Reference Table** - Tabel referensi CIDR umum dengan highlight
-- 🎨 **Visual Range Bar** - Visualisasi range IP address
-- 🔍 **IP Classification** - Deteksi otomatis class dan tipe IP (Public/Private)
+### 🧮 Subnet Calculator
+- **Perhitungan Real-time** - Hasil kalkulasi muncul secara instan saat mengubah input
+- **Dual Input Mode** - Support input via CIDR prefix atau subnet mask
+- **Comprehensive Results** - Network address, broadcast, usable hosts, wildcard mask
+- **Binary Representation** - Tampilan biner untuk pemahaman mendalam
+- **IP Classification** - Deteksi otomatis class dan tipe IP (Public/Private)
+- **Quick Reference Table** - Tabel referensi CIDR umum dengan highlight
 
-### 📐 VLSM Calculator
-- 🏗️ **Dynamic Subnet Management** - Tambah/hapus subnet secara dinamis
-- ⚡ **Auto-Calculate** - Real-time preview dengan debounce 500ms
-- 🎯 **Smart Allocation** - Algoritma VLSM otomatis (largest-first)
-- 📊 **Visual Allocation Bar** - Chart interaktif dengan tooltip hover
-- 📈 **Efficiency Analysis** - Perhitungan efisiensi penggunaan IP
-- ⚠️ **Smart Warnings** - Peringatan untuk CIDR tidak optimal dan efisiensi rendah
+### 📊 VLSM Calculator
+- **Dynamic Subnet Management** - Tambah/hapus subnet secara dinamis
+- **Smart Allocation Algorithm** - Algoritma VLSM otomatis (largest-first)
+- **Visual Allocation Bar** - Chart interaktif dengan tooltip hover
+- **Efficiency Analysis** - Perhitungan efisiensi penggunaan IP
+- **Real-time Preview** - Auto-calculate dengan debounce 500ms
+- **Preset Templates** - Template siap pakai untuk kantor kecil/menengah/besar
 
 ### 🚀 Advanced Features
-- 💾 **History Tracking** - Simpan 5 perhitungan terakhir di localStorage
-- 📤 **Export CSV** - Download hasil dalam format CSV
-- 📋 **Copy to Clipboard** - Salin tabel hasil dengan satu klik
-- 🎨 **Preset Templates** - Template siap pakai untuk kantor kecil/menengah/besar
-- 🔔 **Real-time Preview** - Preview network address sebelum kalkulasi
-- 📱 **Responsive Design** - Tampilan optimal di desktop dan mobile
-- 🌙 **Dark Theme** - Glassmorphism design dengan dark blue gradient
+- **Smart Warnings** - Peringatan untuk CIDR tidak optimal dan efisiensi rendah (<50%)
+- **Export CSV** - Download hasil dalam format CSV
+- **Copy to Clipboard** - Salin tabel hasil dengan satu klik
+- **History Tracking** - Simpan 5 perhitungan terakhir di localStorage
+- **Responsive Design** - Tampilan optimal di desktop dan mobile
+- **Dark Mode Modern** - Glassmorphism design dengan dark blue gradient
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| ![React](https://img.shields.io/badge/React-18.3-blue) | UI Framework |
-| ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue) | Type Safety |
-| ![Vite](https://img.shields.io/badge/Vite-6.4-purple) | Build Tool |
-| ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-blue) | Styling |
-| ![localStorage](https://img.shields.io/badge/localStorage-API-orange) | Data Persistence |
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| ![React](https://img.shields.io/badge/React-18.3-blue) | 18.3 | UI Framework |
+| ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue) | 5.6 | Type Safety |
+| ![Vite](https://img.shields.io/badge/Vite-6.4-purple) | 6.4 | Build Tool |
+| ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-blue) | 3.4 | Styling |
+| ![localStorage](https://img.shields.io/badge/localStorage-API-orange) | - | Data Persistence |
 
 ---
 
-## 📦 Installation
+## 🚀 Cara Menjalankan
 
 ### Prerequisites
 - Node.js 18+ 
@@ -84,7 +89,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/subnet-calculator.git
+git clone https://github.com/username/subnet-calculator.git
 
 # Navigate to project directory
 cd subnet-calculator
@@ -110,7 +115,7 @@ npm run preview
 
 ---
 
-## 📖 Usage
+## 📖 Cara Penggunaan
 
 ### Subnet Calculator
 
@@ -147,25 +152,30 @@ Result:
 1. Departemen IT     → 192.168.1.0/26   (62 usable hosts)
 2. Departemen HR     → 192.168.1.64/27  (30 usable hosts)
 3. Departemen Finance → 192.168.1.96/28  (14 usable hosts)
+
+Total Subnet: 3
+Host Terpakai: 128
+Host Tersisa: 128
+Efisiensi: 50%
 ```
 
 ---
 
 ## 🌍 Live Demo
 
-**[🚀 Try Live Demo](https://subnet-calculator.vercel.app)**
+**[🚀 Coba Live Demo](https://subnet-calculator.vercel.app)**
 
 Deployed on Vercel with automatic CI/CD from main branch.
 
 ---
 
-## 🤝 Contributing
+## 🤝 Kontribusi
 
-Contributions are welcome! Here's how you can help:
+Kontribusi sangat diterima! Berikut cara untuk berkontribusi:
 
 ### Development Workflow
 
-1. **Fork the repository**
+1. **Fork repository**
 2. **Create feature branch**
    ```bash
    git checkout -b feature/AmazingFeature
@@ -247,18 +257,18 @@ SOFTWARE.
 
 ## 📞 Contact
 
-For questions, suggestions, or collaboration:
+Untuk pertanyaan, saran, atau kolaborasi:
 
 - 📧 Email: your.email@example.com
-- 🐙 GitHub: [@yourusername](https://github.com/yourusername)
+- 🐙 GitHub: [@username](https://github.com/username)
 - 🌐 Website: [yourwebsite.com](https://yourwebsite.com)
 
 ---
 
 <div align="center">
 
-**⭐ If you find this project useful, consider giving it a star on GitHub! ⭐**
+**⭐ Jika project ini bermanfaat, berikan bintang di GitHub! ⭐**
 
-Made with ❤️ by [Your Name](https://github.com/yourusername)
+Dibuat dengan ❤️ oleh [Your Name](https://github.com/username)
 
 </div>
