@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { calculateVLSM, VLSMSubnetInput, VLSMResult } from '../utils/vlsmCalculator';
 
 let nextId = 1;
+
+interface HistoryItem {
+  id: string;
+  timestamp: number;
+  baseIp: string;
+  baseCidr: number;
+  subnetCount: number;
+  totalHosts: number;
+  efficiency: number;
+}
 
 function VLSMCalculator() {
   const [baseIp, setBaseIp] = useState('192.168.1.0');
@@ -13,6 +23,67 @@ function VLSMCalculator() {
   ]);
   const [result, setResult] = useState<VLSMResult | null>(null);
   const [error, setError] = useState('');
+  const [autoCalculate, setAutoCalculate] = useState(true);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [tooltipData, setTooltipData] = useState<{ x: number; y: number; content: string } | null>(null);
+
+  // Load history from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('vlsm-history');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load history:', e);
+      }
+    }
+  }, []);
+
+  // Save to history when result changes
+  useEffect(() => {
+    if (result && result.success) {
+      const newItem: HistoryItem = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        baseIp: result.baseNetwork,
+        baseCidr: result.baseCidr,
+        subnetCount: result.totalSubnets,
+        totalHosts: result.totalUsedHosts,
+        efficiency: result.efficiency,
+      };
+      const newHistory = [newItem, ...history].slice(0, 5);
+      setHistory(newHistory);
+      localStorage.setItem('vlsm-history', JSON.stringify(newHistory));
+    }
+  }, [result]);
+
+  // Auto-calculate when inputs change
+  useEffect(() => {
+    if (autoCalculate && baseIp && baseCidr >= 0 && baseCidr <= 32) {
+      const timer = setTimeout(() => {
+        handleCalculate();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [baseIp, baseCidr, subnets, autoCalculate]);
+
+  // Preview network address
+  const previewNetwork = useMemo(() => {
+    if (!baseIp || baseCidr < 0 || baseCidr > 32) return null;
+    const octets = baseIp.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((o) => isNaN(o) || o < 0 || o > 255)) return null;
+    
+    const ipInt = octets.reduce((acc, octet) => (acc << 8) + octet, 0);
+    const maskInt = baseCidr === 0 ? 0 : (~0 << (32 - baseCidr)) >>> 0;
+    const networkInt = ipInt & maskInt;
+    const networkOctets = [
+      (networkInt >>> 24) & 255,
+      (networkInt >>> 16) & 255,
+      (networkInt >>> 8) & 255,
+      networkInt & 255,
+    ];
+    return networkOctets.join('.');
+  }, [baseIp, baseCidr]);
 
   const addSubnet = () => {
     setSubnets([...subnets, { id: String(++nextId), name: '', requiredHosts: 10 }]);
@@ -24,16 +95,13 @@ function VLSMCalculator() {
   };
 
   const updateSubnet = (id: string, field: 'name' | 'requiredHosts', value: string | number) => {
-    setSubnets(
-      subnets.map((s) => (s.id === id ? { ...s, [field]: value } : s))
-    );
+    setSubnets(subnets.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
   const handleCalculate = () => {
     setError('');
     setResult(null);
 
-    // Validate inputs
     const emptyNames = subnets.filter((s) => !s.name.trim());
     if (emptyNames.length > 0) {
       setError('Semua subnet harus memiliki nama.');
@@ -62,7 +130,99 @@ function VLSMCalculator() {
     setError('');
   };
 
+  const loadPreset = (preset: 'small' | 'medium' | 'large') => {
+    switch (preset) {
+      case 'small':
+        setBaseIp('192.168.1.0');
+        setBaseCidr(24);
+        setSubnets([
+          { id: String(++nextId), name: 'Staff', requiredHosts: 50 },
+          { id: String(++nextId), name: 'Server', requiredHosts: 10 },
+          { id: String(++nextId), name: 'Guest WiFi', requiredHosts: 20 },
+        ]);
+        break;
+      case 'medium':
+        setBaseIp('172.16.0.0');
+        setBaseCidr(22);
+        setSubnets([
+          { id: String(++nextId), name: 'Departemen IT', requiredHosts: 200 },
+          { id: String(++nextId), name: 'Departemen HR', requiredHosts: 100 },
+          { id: String(++nextId), name: 'Departemen Finance', requiredHosts: 50 },
+          { id: String(++nextId), name: 'Departemen Marketing', requiredHosts: 150 },
+        ]);
+        break;
+      case 'large':
+        setBaseIp('10.0.0.0');
+        setBaseCidr(20);
+        setSubnets([
+          { id: String(++nextId), name: 'Server Farm', requiredHosts: 500 },
+          { id: String(++nextId), name: 'Departemen IT', requiredHosts: 300 },
+          { id: String(++nextId), name: 'Departemen Operations', requiredHosts: 400 },
+          { id: String(++nextId), name: 'Departemen Sales', requiredHosts: 250 },
+          { id: String(++nextId), name: 'Departemen Support', requiredHosts: 200 },
+        ]);
+        break;
+    }
+  };
+
+  const exportCSV = () => {
+    if (!result || !result.success) return;
+
+    const headers = ['Nama', 'Network Address', 'Subnet Mask', 'CIDR', 'Broadcast', 'Usable Hosts', 'IP Range'];
+    const rows = result.subnets.map((s) => [
+      s.name,
+      s.networkAddress,
+      s.subnetMask,
+      `/${s.cidr}`,
+      s.broadcastAddress,
+      s.usableHosts.toString(),
+      s.ipRange,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `vlsm-calculation-${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const copyResults = () => {
+    if (!result || !result.success) return;
+
+    const text = result.subnets
+      .map((s) => `${s.name}\t${s.networkAddress}\t${s.subnetMask}\t/${s.cidr}\t${s.broadcastAddress}\t${s.usableHosts}\t${s.ipRange}`)
+      .join('\n');
+
+    const header = 'Nama\tNetwork\tMask\tCIDR\tBroadcast\tUsable\tRange\n';
+    navigator.clipboard.writeText(header + text).then(() => {
+      alert('Hasil berhasil disalin ke clipboard!');
+    });
+  };
+
   const formatNumber = (num: number): string => num.toLocaleString('id-ID');
+
+  const formatEfficiency = (eff: number): string => {
+    if (eff < 0.01) return '< 0.01%';
+    return `${eff}%`;
+  };
+
+  const handleBarHover = (e: React.MouseEvent, subnetName: string, network: string, cidr: number, hosts: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipData({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+      content: `${subnetName}\n${network} /${cidr}\n${hosts} hosts`,
+    });
+  };
+
+  const handleBarLeave = () => {
+    setTooltipData(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -74,6 +234,7 @@ function VLSMCalculator() {
           </svg>
           Network Dasar
         </h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-blue-200 mb-2">IP Address</label>
@@ -84,6 +245,11 @@ function VLSMCalculator() {
               placeholder="192.168.1.0"
               className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all"
             />
+            {previewNetwork && (
+              <p className="text-xs text-cyan-300 mt-2 font-mono">
+                Network: {previewNetwork}/{baseCidr}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-blue-200 mb-2">CIDR Prefix</label>
@@ -105,7 +271,54 @@ function VLSMCalculator() {
                 className="w-16 px-3 py-3 bg-white/5 border border-white/20 rounded-xl text-white text-center focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all"
               />
             </div>
+            {baseCidr < 16 && (
+              <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-300 text-xs flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>CIDR terlalu besar untuk network privat. Rekomendasi: /16 - /30</span>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Preset Buttons */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-blue-200 mb-2">Preset Template</label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => loadPreset('small')}
+              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/20 text-white/70 hover:text-white rounded-lg transition-all"
+            >
+              🏢 Kantor Kecil (/24)
+            </button>
+            <button
+              onClick={() => loadPreset('medium')}
+              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/20 text-white/70 hover:text-white rounded-lg transition-all"
+            >
+              🏬 Kantor Menengah (/22)
+            </button>
+            <button
+              onClick={() => loadPreset('large')}
+              className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/20 text-white/70 hover:text-white rounded-lg transition-all"
+            >
+              🏭 Kantor Besar (/20)
+            </button>
+          </div>
+        </div>
+
+        {/* Auto-calculate toggle */}
+        <div className="mt-4 flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="autoCalc"
+            checked={autoCalculate}
+            onChange={(e) => setAutoCalculate(e.target.checked)}
+            className="w-4 h-4 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-400/50"
+          />
+          <label htmlFor="autoCalc" className="text-sm text-white/60">
+            Auto-calculate (real-time preview)
+          </label>
         </div>
       </div>
 
@@ -130,7 +343,6 @@ function VLSMCalculator() {
         </div>
 
         <div className="space-y-3">
-          {/* Header */}
           <div className="hidden md:grid grid-cols-12 gap-3 text-xs text-white/50 font-medium px-2">
             <div className="col-span-1">#</div>
             <div className="col-span-5">Nama Subnet</div>
@@ -138,7 +350,6 @@ function VLSMCalculator() {
             <div className="col-span-2 text-right">Aksi</div>
           </div>
 
-          {/* Subnet Rows */}
           {subnets.map((subnet, index) => (
             <div
               key={subnet.id}
@@ -186,28 +397,29 @@ function VLSMCalculator() {
           ))}
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={handleCalculate}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 active:scale-95"
-          >
-            <span className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              Hitung VLSM
-            </span>
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white/70 hover:text-white font-semibold rounded-xl transition-all active:scale-95"
-          >
-            Reset
-          </button>
-        </div>
+        {!autoCalculate && (
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={handleCalculate}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 active:scale-95"
+            >
+              <span className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Hitung VLSM
+              </span>
+            </button>
+          </div>
+        )}
 
-        {/* Error */}
+        <button
+          onClick={handleReset}
+          className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white/70 hover:text-white font-semibold rounded-xl transition-all active:scale-95 mt-3"
+        >
+          Reset
+        </button>
+
         {error && (
           <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -246,21 +458,58 @@ function VLSMCalculator() {
             />
             <SummaryCard
               label="Efisiensi"
-              value={`${result.efficiency}%`}
+              value={formatEfficiency(result.efficiency)}
               icon="⚡"
               color="from-purple-500/20 to-purple-600/20"
               borderColor="border-purple-500/30"
             />
           </div>
 
+          {/* Efficiency Warning */}
+          {result.efficiency < 50 && (
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-300 flex items-start gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-semibold">Efisiensi rendah!</p>
+                <p className="text-sm text-yellow-200/80">Pertimbangkan CIDR yang lebih kecil untuk mengoptimalkan penggunaan alamat IP.</p>
+              </div>
+            </div>
+          )}
+
           {/* Results Table */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Hasil Pembagian Subnet
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Hasil Pembagian Subnet
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={exportCSV}
+                  className="px-3 py-1.5 text-xs bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 text-green-300 rounded-lg transition-all flex items-center gap-1"
+                  title="Export CSV"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export CSV
+                </button>
+                <button
+                  onClick={copyResults}
+                  className="px-3 py-1.5 text-xs bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-300 rounded-lg transition-all flex items-center gap-1"
+                  title="Copy Results"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </button>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -307,7 +556,7 @@ function VLSMCalculator() {
             </div>
           </div>
 
-          {/* Visual Allocation Bar */}
+          {/* Visual Allocation Bar with Tooltip */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -316,7 +565,7 @@ function VLSMCalculator() {
               Visualisasi Alokasi
             </h3>
             <div className="space-y-3">
-              <div className="flex h-8 rounded-lg overflow-hidden border border-white/10">
+              <div className="flex h-8 rounded-lg overflow-hidden border border-white/10 relative">
                 {result.subnets.map((subnet, index) => {
                   const widthPercent = (subnet.totalHosts / result.totalBaseHosts) * 100;
                   const colors = [
@@ -334,9 +583,10 @@ function VLSMCalculator() {
                   return (
                     <div
                       key={subnet.id}
-                      className={`${colors[index % colors.length]} flex items-center justify-center border-r border-white/10 last:border-r-0`}
+                      className={`${colors[index % colors.length]} flex items-center justify-center border-r border-white/10 last:border-r-0 cursor-pointer hover:brightness-125 transition-all`}
                       style={{ width: `${Math.max(widthPercent, 2)}%` }}
-                      title={`${subnet.name}: ${subnet.networkAddress} (/${subnet.cidr})`}
+                      onMouseEnter={(e) => handleBarHover(e, subnet.name, subnet.networkAddress, subnet.cidr, subnet.usableHosts)}
+                      onMouseLeave={handleBarLeave}
                     >
                       {widthPercent > 5 && (
                         <span className="text-[10px] text-white font-medium truncate px-1">
@@ -350,7 +600,6 @@ function VLSMCalculator() {
                   <div
                     className="bg-white/10 flex items-center justify-center"
                     style={{ width: `${(result.totalRemainingHosts / result.totalBaseHosts) * 100}%` }}
-                    title={`Sisa: ${result.totalRemainingHosts} hosts`}
                   >
                     {(result.totalRemainingHosts / result.totalBaseHosts) * 100 > 5 && (
                       <span className="text-[10px] text-white/50">Sisa</span>
@@ -358,6 +607,21 @@ function VLSMCalculator() {
                   </div>
                 )}
               </div>
+
+              {/* Tooltip */}
+              {tooltipData && (
+                <div
+                  className="fixed z-50 bg-slate-800 border border-cyan-400/30 rounded-lg px-3 py-2 text-xs text-white shadow-xl pointer-events-none whitespace-pre-line"
+                  style={{
+                    left: tooltipData.x,
+                    top: tooltipData.y,
+                    transform: 'translate(-50%, -100%)',
+                  }}
+                >
+                  {tooltipData.content}
+                </div>
+              )}
+
               {/* Legend */}
               <div className="flex flex-wrap gap-3 mt-2">
                 {result.subnets.map((subnet, index) => {
@@ -388,6 +652,42 @@ function VLSMCalculator() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* History */}
+      {history.length > 0 && (
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Riwayat Perhitungan (5 Terakhir)
+          </h3>
+          <div className="space-y-2">
+            {history.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/40">
+                    {new Date(item.timestamp).toLocaleString('id-ID', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <span className="font-mono text-sm text-cyan-300">
+                    {item.baseIp}/{item.baseCidr}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-white/60">
+                  <span>{item.subnetCount} subnet</span>
+                  <span>{formatNumber(item.totalHosts)} hosts</span>
+                  <span className="text-purple-300">{formatEfficiency(item.efficiency)}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
