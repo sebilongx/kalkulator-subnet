@@ -28,11 +28,11 @@ Kalkulator subnetting IP address yang powerful dengan fitur VLSM, visualisasi in
 <div align="center">
 
 ### Subnet Calculator Interface
-![Subnet Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=Subnet+Calculator+Interface)
+![Subnet Calculator](https://raw.githubusercontent.com/sebilongx/kalkulator-subnet/main/{3C56968E-25B6-45B0-8464-E5E181351527}.png)
 *Interface kalkulator subnet dengan dark theme glassmorphism*
 
 ### VLSM Calculator dengan Visualisasi
-![VLSM Calculator](https://via.placeholder.com/800x450/1e293b/06b6d4?text=VLSM+Calculator+with+Visualization)
+![VLSM Calculator](https://raw.githubusercontent.com/sebilongx/kalkulator-subnet/main/{BE89D62D-6A8D-43C7-9D74-63DDEED83C}.png)
 *Fitur VLSM dengan visualisasi alokasi interaktif dan tooltip*
 
 </div>
